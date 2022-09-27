@@ -217,7 +217,7 @@ pub mod openapi;
 
 use std::collections::BTreeMap;
 
-use openapi::Response;
+use openapi::{ArrayBuilder, ObjectBuilder, OneOfBuilder, Response};
 pub use utoipa_gen::*;
 
 /// Trait for implementing OpenAPI specification in Rust.
@@ -614,4 +614,23 @@ pub trait IntoResponses {
 pub trait ToResponse {
     /// Returns a map of response component name (to be referenced) to a response.
     fn response() -> (String, Response);
+}
+
+impl<T: ToSchema> ToSchema for Vec<T> {
+    fn schema() -> openapi::schema::Schema {
+        ArrayBuilder::new().items(T::schema()).into()
+    }
+}
+impl ToSchema for () {
+    fn schema() -> openapi::schema::Schema {
+        ObjectBuilder::new().into()
+    }
+}
+impl<T: ToSchema> ToSchema for Option<T> {
+    fn schema() -> openapi::schema::Schema {
+        OneOfBuilder::new()
+            .item(<() as ToSchema>::schema())
+            .item(T::schema())
+            .into()
+    }
 }
